@@ -1,18 +1,12 @@
 import random
-import itertools
-
-def rd(n):
-    for r in itertools.count(0):
-        if n % 2 == 1:
-            return (r, n)
-        n //= 2
+from nu_two import nu_two
 
 def probably_prime(n, rounds=1000):
     if n % 2 == 0: return n == 2
     if n % 3 == 0: return n == 3
     if n % 5 == 0: return n == 5
     if n % 7 == 0: return n == 7
-    r, d = rd(n - 1)
+    r, d = nu_two(n - 1)
     for i in range(rounds):
         a = random.randint(2, n - 2)
         x = pow(a, d, n)
