@@ -5,6 +5,8 @@ from miller_rabin import probably_prime
 from nu_two import nu_two
 
 def legendre_symbol(x, p):
+    if p == 2:
+        return (x % p + p) % p
     power = pow(x % p, (p - 1) // 2, p)
     if power == p - 1:
         return -1
