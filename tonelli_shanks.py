@@ -2,6 +2,7 @@ import math
 import itertools
 import random
 from miller_rabin import probably_prime
+from perfect_power import perfect_power
 from nu_two import nu_two
 
 def legendre_symbol(x, p):
@@ -24,10 +25,12 @@ def pow2_ord(t, p):
         v = v * v % p
 
 
-def square_root(n, p):
+def square_root_prime(n, p):
     n = ((n % p) + p) % p
     if n == 0:
         return 0
+    if p == 2:
+        return n
 
     if legendre_symbol(n, p) == -1:
         return None
@@ -59,18 +62,62 @@ def square_root(n, p):
 
     return R
 
+# if already computed for a smaller power of p
+def square_root(n, m, r_precomp=None):
+    if probably_prime(m):
+        return square_root_prime(n, m)
+
+    res = perfect_power(m)
+
+    if res == None:
+        return None
+    else: 
+        p, e = res
+        if not probably_prime(p):
+            return None
+        
+        if r_precomp == None:
+            r = square_root_prime(n, p)
+            if r == None:
+                return None
+            
+            if p == 2:
+                pow_p = p
+                for k in range(1, e):
+                    if (n - r * r) // pow_p % 2 == 1:
+                        return None
+                    r += pow_p * (((n - r * r) // pow_p // 2) % p)
+                    pow_p *= p
+            else:
+                pow_p = p
+                for k in range(1, e):
+                    r += pow_p * ((((n - r * r) // pow_p) * pow(2 * r, -1, p) % p + p) % p)
+                    pow_p *= p
+            
+            return r
+        else:
+            pow_p = m // p
+            r = r_precomp
+            if p == 2:
+                if (n - r * r) // pow_p % 2 == 1:
+                    return None
+                r += pow_p * (((n - r * r) // pow_p // 2) % p)
+            else:
+                r += pow_p * ((((n - r * r) // pow_p) * pow(2 * r, -1, p) % p + p) % p)
+            return r
+
 if __name__ == '__main__':
     while True:
         n = int(input('n: '))
-        p = int(input('p: '))
+        m = int(input('m: '))
         
-        if p < 2 or not probably_prime(p):
-            print('p is not prime')
+        r = square_root(n, m)
+        if r == None:
+            print('m is not a power of a prime, or n is not a quadratic residue mod m')
         else:
-            r = square_root(n, p)
-            if r == None:
-                print('n is not a qr mod p')
-            elif r == 0:
-                print('the root of x^2 = n mod p is 0')
+            r1 = min(r, m - r)
+            r2 = max(r, m - r)
+            if r1 == r2:
+                print(f'the root of x^2 = n mod m is {r1}')
             else:
-                print(f'the roots of x^2 = n mod p are {min(r, p - r)} and {max(r, p - r)}')
+                print(f'the roots of x^2 = n mod m are {r1} and {r2}')

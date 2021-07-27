@@ -2,7 +2,7 @@
 
 import math
 
-# equivalent int(n**(1/r)) but doesn't need to convert to float
+# equivalent ceil(n**(1/r)) but doesn't need to convert to float
 def integral_rth_root(n, r):
     lo, hi = 2**(int(math.log(n, 2) // r)), 2**(int(math.log(n, 2) // r + 1))
 

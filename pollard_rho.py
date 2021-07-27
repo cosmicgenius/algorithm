@@ -1,5 +1,6 @@
 import math
 import random
+import time
 from miller_rabin import probably_prime
 from perfect_power import perfect_power
 
@@ -44,6 +45,8 @@ if __name__ == '__main__':
             print('n is 1')
             continue
 
+        start = time.time_ns()
+
         prime_power = {}
         prime_fact = prime_factors(n)
         prime_fact.sort()
@@ -59,5 +62,4 @@ if __name__ == '__main__':
             return str(p)
 
         print(f'the prime factorization of n is n = {" * ".join([power_text(p, e) for p, e in prime_power.items()])}')
-
-        
+        print(f'time taken: {round((time.time_ns() - start) / 10**9, 3)}s')

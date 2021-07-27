@@ -1,7 +1,7 @@
 # given an n by m matrix, find a subset of rows that sum to 0 in F_2
-# if it doesn't exist, output None
+# outputs list of linearly independent subsets (hopefully the maximum amount)
 # Algorithm from: https://www.cs.umd.edu/~gasarch/TOPICS/factoring/fastgauss.pdf
-def generate_subset(matrix):
+def generate_subsets(matrix):
     n = len(matrix)
     if n == 0:
         return None
@@ -31,14 +31,15 @@ def generate_subset(matrix):
                     for r in range(n):
                         matrix[r][c2] = (matrix[r][c2] + matrix[r][c]) % 2
 
+    all_subsets = []
     for r in range(n):
         if not marked[r]:
             needed_rows = [r]
             for c in range(m):
                 if matrix[r][c] % 2 == 1:
                     needed_rows.append(row_marked[c])
-            return needed_rows
-    return None
+            all_subsets.append(needed_rows)
+    return all_subsets
 
 if __name__ == '__main__':
     m = [[1, 1, 0, 0],
