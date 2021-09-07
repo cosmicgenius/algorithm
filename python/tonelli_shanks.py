@@ -91,7 +91,7 @@ def square_root(n, m, r_precomp=None):
             else:
                 pow_p = p
                 for k in range(1, e):
-                    r += pow_p * ((((n - r * r) // pow_p) * pow(2 * r, -1, p) % p + p) % p)
+                    r += pow_p * ((((n - r * r) // pow_p) * pow(2 * r, p - 2, p) % p + p) % p)
                     pow_p *= p
             
             return r
@@ -103,7 +103,7 @@ def square_root(n, m, r_precomp=None):
                     return None
                 r += pow_p * (((n - r * r) // pow_p // 2) % p)
             else:
-                r += pow_p * ((((n - r * r) // pow_p) * pow(2 * r, -1, p) % p + p) % p)
+                r += pow_p * ((((n - r * r) // pow_p) * pow(2 * r, p - 2, p) % p + p) % p)
             return r
 
 if __name__ == '__main__':

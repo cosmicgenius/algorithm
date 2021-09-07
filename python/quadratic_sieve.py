@@ -32,11 +32,11 @@ def proper_factor(n):
     B = len(prime_base)
     M = min(10 ** 7 * 2, B ** 3 * 2, int(math.sqrt(n))) # conserve memory by sieving max 20 million at a time
 
-    print(f'{approx_B = }')
-    print(f'{B = }')
-    print(f'{M = }')
-    print(f'{V = }')
-    print(f'{prime_base = }')
+    print(f'approx_B = {approx_B}')
+    print(f'B = {B}')
+    print(f'M = {M}')
+    print(f'V = {V}')
+    print(f'prime_base = {prime_base}')
 
     sieve_results = []
     sieve_result_root = []
@@ -191,7 +191,7 @@ def proper_factor(n):
                 #print(f'{square1_rt=}, {square2_rt=}')
                 
                 g = math.gcd(square1_rt - square2_rt, n)
-                print(f'{g=}')
+                print(f'g = {g}')
                 if g > 1 and g < n:
                     return g
 
@@ -239,7 +239,7 @@ if __name__ == '__main__':
             print('n is 1')
             continue
 
-        start = time.time_ns()
+        start = time.time()
     
         prime_power = {}
         prime_fact = prime_factors(n)
@@ -256,4 +256,4 @@ if __name__ == '__main__':
             return str(p)
 
         print(f'the prime factorization of n is n = {" * ".join([power_text(p, e) for p, e in prime_power.items()])}')
-        print(f'time taken: {round((time.time_ns() - start) / 10**9, 3)}s')
+        print(f'time taken: {round(time.time() - start, 3)}s')
