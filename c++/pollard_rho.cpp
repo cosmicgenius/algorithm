@@ -1,25 +1,26 @@
 #include "lib/Algorithm.h"
 #include "lib/Bint.h"
+#include <iostream>
 #include <map>
 #include <time.h>
 
 using namespace std;
 
-vector<Bint> prime_factors(Bint n) {
-  cout << "Factoring: " << n << endl;
+vector<Bint> prime_fact;
+
+void populate_prime_fact(Bint n) {
+  // cout << "Factoring: " << n << endl;
   Bint f1 = Algorithm::pollard_rho(n);
 
   if (f1 == 1) {
-    return vector<Bint>(1, n);
+    prime_fact.push_back(n);
+    return;
   }
 
   Bint f2 = n / f1;
 
-  vector<Bint> primes1 = prime_factors(f1);
-  vector<Bint> primes2 = prime_factors(f2);
-  primes1.insert(primes1.end(), primes2.begin(), primes2.end());
-
-  return primes1;
+  populate_prime_fact(f1);
+  populate_prime_fact(f2);
 }
 
 void print_prime_fact(Bint n) {
@@ -28,7 +29,7 @@ void print_prime_fact(Bint n) {
     return;
   }
 
-  vector<Bint> prime_fact = prime_factors(n);
+  populate_prime_fact(n);
   sort(prime_fact.begin(), prime_fact.end());
 
   vector<pair<Bint, uint32_t>> prime_power(1, {prime_fact[0], 1});
@@ -40,6 +41,7 @@ void print_prime_fact(Bint n) {
       prime_power.push_back({prime_fact[i], 1});
     }
   }
+  prime_fact.clear();
 
   cout << "the prime factorization of n is n = ";
 

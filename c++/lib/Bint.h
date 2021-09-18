@@ -17,6 +17,9 @@ private:
   friend std::ostream &operator<<(std::ostream &strm, const Bint &n);
   friend std::istream &operator>>(std::istream &strm, Bint &n);
 
+  // Sets to 0
+  void set_0();
+
   // Assign number to a string in decimal
   void assign_decimal(const std::string &str);
 
@@ -26,14 +29,25 @@ private:
   // Counts leading zeroes
   static uint8_t clz(const BLOCK &n);
 
-  // Multiplication, self explanatory
-  static Bint mul(const Bint &a, const Bint &b);
+  // Checks if a has a smaller absolute value than b
+  // Returns abs(a) < abs(b)
+  static bool magnitude_comp(const Bint &a, const Bint &b);
+
+  // Multiplication
+  // Assigns answer to res (which is assumed to start at 0)
+  static void assign_mul(const Bint &a, const Bint &b, Bint &res);
 
   // Returns a pair containing floor(divident / divisor) and dividend % divisor
   // Normal mathematical division, i.e. always rounds down, remainder is always
   // positive
-  static std::pair<Bint, BLOCK> div_m(const Bint &dividend,
-                                      const BLOCK &divisor);
+  // Assigns answer to {quotient, remainder} (which are assumed to start 0)
+  static void assign_div_m(const Bint &dividend, const BLOCK &divisor,
+                           Bint &quotient, BLOCK &remainder);
+
+  // Division, see the public div
+  // Assigns answer to {quotient, remainder} (which are assumed to start 0)
+  static void assign_div(const Bint &dividend, const Bint &divisor,
+                         Bint &quotient, Bint &remainder);
 
   // Actual data for the big int
   // stored in base 2 ** 32 from smallest to largest, i.e.
@@ -56,6 +70,8 @@ public:
   Bint(uint64_t n);
 
   Bint(const Bint &b);
+
+  Bint operator=(Bint const &b);
 
   // String constructors
 
