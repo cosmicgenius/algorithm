@@ -1,4 +1,6 @@
 #include "Bint.h"
+#include <functional>
+#include <map>
 
 namespace Algorithm {
 
@@ -13,11 +15,18 @@ std::pair<uint32_t, Bint> two_adic_val(Bint n);
 std::pair<Bint, uint32_t> factor_perfect_power(Bint n);
 
 // Miller Rabin primality test
-bool is_probable_prime(Bint n, uint64_t rounds = 1000);
+bool is_probable_prime(Bint n, uint64_t rounds = 40);
+
+// Returns a map (p -> \\nu_p(n)) of the prime factorization of n
+// given a function to find nontrivial factors of n. See pollard_rho for a
+// working example.
+std::map<Bint, uint32_t>
+prime_factors(const Bint &n,
+              std::function<Bint(const Bint &)> &&find_nontrivial_factor);
 
 // Pollard's rho prime factorization algorithm.
 // If n is composite, returns a proper factor > 1 of n.
 // Otherwise, returns 1.
-Bint pollard_rho(Bint n);
+Bint pollard_rho(const Bint &n);
 
-}
+} // namespace Algorithm

@@ -1,5 +1,7 @@
 #include "Bint.h"
-#include <bits/stdc++.h>
+#include <functional>
+#include <map>
+#include <queue>
 
 namespace Algorithm {
 
@@ -67,7 +69,7 @@ bool is_probable_prime(Bint n, uint64_t rounds = 40) {
   return true;
 }
 
-Bint pollard_rho(Bint n) {
+Bint pollard_rho(const Bint &n) {
   if (is_probable_prime(n)) {
     return 1;
   }
@@ -93,6 +95,38 @@ Bint pollard_rho(Bint n) {
     }
   }
   return Bint::gcd(g, n);
+}
+
+std::map<Bint, uint32_t>
+prime_factors(const Bint &n,
+              std::function<Bint(const Bint &)> &&find_nontrivial_factor) {
+  std::priority_queue<Bint> pq;
+  pq.push(n);
+
+  Bint one = 1;
+
+  while (true) {
+    Bint t = pq.top();
+    Bint f = find_nontrivial_factor(t);
+
+    if (f == one) {
+      break;
+    }
+    pq.pop();
+
+    pq.push(f);
+    pq.push(t / f);
+  }
+
+  std::map<Bint, uint32_t> prime_fact;
+
+  while (!pq.empty()) {
+    Bint p = pq.top();
+    pq.pop();
+
+    prime_fact[p]++;
+  }
+  return prime_fact;
 }
 
 } // namespace Algorithm
