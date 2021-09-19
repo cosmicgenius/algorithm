@@ -322,7 +322,7 @@ void Bint::assign_mul(const Bint &a, const Bint &b, Bint &res) {
 void Bint::assign_div_m(const Bint &dividend, const BLOCK &divisor,
                         Bint &quotient, BLOCK &remainder) {
   if (divisor == 0) {
-    throw std::invalid_argument("Cannot divide by 0");
+    throw std::domain_error("Cannot divide by 0");
   }
   if (dividend.sgn == 0) {
     return;
@@ -366,7 +366,7 @@ void Bint::assign_div_m(const Bint &dividend, const BLOCK &divisor,
 void Bint::assign_div(const Bint &dividend, const Bint &divisor, Bint &quotient,
                       Bint &remainder) {
   if (divisor.sgn == 0) {
-    throw std::invalid_argument("Cannot divide by 0");
+    throw std::domain_error("Cannot divide by 0");
   }
 
   if (magnitude_comp(dividend, divisor)) {
@@ -1051,6 +1051,13 @@ Bint Bint::pow(const Bint &a, const BLOCK &b) {
 }
 
 Bint Bint::pow(const Bint &a, const Bint &b, const Bint &M) {
+  if (b == 0) {
+    return 1;
+  }
+  if (b.sgn == -1) {
+    return 0;
+  }
+
   Bint res = 1;
   Bint a2 = a;
 

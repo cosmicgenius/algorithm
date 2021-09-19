@@ -127,5 +127,29 @@ int main() {
   // cout << i * i << endl;
 
   // cout << b1 << " " << b2 << endl << b1 - b2 << endl << b2 - b1 << endl;
-  cout << Bint::gcd(696969, 69264);
+  // cout << Bint::gcd(696969, 69264);
+
+  // vector<vector<bool>> m = {
+  //     {1, 1, 0, 0}, {1, 1, 0, 1}, {0, 0, 1, 1}, {0, 0, 1, 0}, {0, 0, 0, 1}};
+
+  // vector<vector<int>> m2 = Algorithm::gf2_gaussian_elimination(m);
+
+  // for (auto v : m2) {
+  //   for (auto i : v) {
+  //     cout << i << " ";
+  //   }
+  //   cout << endl;
+  // }
+
+  // int N = 3731;
+
+  // vector<uint32_t> v = Algorithm::primes_less_than(N);
+
+  // cout << v.size() << endl;
+  // for (int i : v) {
+  //   cout << i << " ";
+  // }
+  // cout << endl;
+
+  cout << Algorithm::square_root_modulo_prime_power(56, 101, 3) << endl;
 }
