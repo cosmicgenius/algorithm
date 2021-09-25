@@ -3,8 +3,8 @@
 #include <bitset>
 #include <chrono>
 #include <iostream>
+#include <math.h>
 #include <random>
-#include <sstream>
 #include <vector>
 
 // Blocks when parsing decimal
@@ -133,7 +133,7 @@ void Bint::assign_mul(const Bint &a, const Bint &b, Bint &res) {
     return;
   }
 
-  size_t O = std::max(n, m) / 2;
+  size_t O = std::min(n, m) / 2;
 
   if (O < KARATSUBA_CUTOFF) {
     if (a == b) {
@@ -818,6 +818,10 @@ Bint &Bint::operator^=(const Bint &rhs) {
 // Bit shifts
 
 Bint &Bint::operator<<=(const size_t shift) {
+  if (this->sgn == 0) {
+    return *this;
+  }
+
   size_t n = data.size();
 
   size_t block_shifts = shift / 32;
@@ -839,6 +843,10 @@ Bint &Bint::operator<<=(const size_t shift) {
 }
 
 Bint &Bint::operator>>=(const size_t shift) {
+  if (this->sgn == 0) {
+    return *this;
+  }
+
   size_t n = data.size();
 
   size_t block_shifts = shift / 32;
@@ -999,6 +1007,16 @@ std::string Bint::to_string() const {
   return ((sgn == -1) ? "-" : "") + res;
 }
 
+uint32_t Bint::to_uint32_t() const {
+  if (this->sgn == 0) {
+    return 0;
+  }
+  if (this->sgn == 1) {
+    return this->data[0];
+  }
+  return -this->data[0];
+}
+
 // Other
 
 Bint Bint::operator-() const {
@@ -1023,7 +1041,7 @@ Bint Bint::abs() const {
 
 size_t Bint::bit_length() const {
   if (sgn == 0) {
-    return 32;
+    return 0;
   }
 
   return 32 * data.size() - (int)clz(data.back());
@@ -1086,7 +1104,7 @@ Bint Bint::pow(const Bint &a, const Bint &b, const Bint &M) {
 }
 
 Bint Bint::integral_rth_root(const Bint &n, const BLOCK &r) {
-  Bint lo = (1 << ((n.bit_length() - 1) / r));
+  Bint lo = ((Bint)1 << ((n.bit_length() - 1) / r));
   Bint hi = lo << 1;
 
   while (hi > lo) {
@@ -1099,6 +1117,22 @@ Bint Bint::integral_rth_root(const Bint &n, const BLOCK &r) {
     }
   }
   return lo;
+}
+
+double Bint::log_2(const Bint &n) {
+  if (n.sgn != 1) {
+    throw std::domain_error("Cannot take the logarithm of a negative number");
+  }
+
+  if (n.data.size() == 1) {
+    return log2((double)n.data[0]);
+  }
+
+  LBLOCK leading_digits = n.data.back();
+  leading_digits <<= 32;
+  leading_digits += n.data.rbegin()[1];
+
+  return log2((double)(leading_digits)) + 32.0 * (n.data.size() - 2);
 }
 
 Bint Bint::rand(const Bint &n) {

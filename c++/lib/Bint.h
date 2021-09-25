@@ -139,8 +139,10 @@ public:
   bool operator>=(const Bint &rhs) const;
 
   // Explicit conversion
+
   bool to_bool() const;
   std::string to_string() const;
+  uint32_t to_uint32_t() const;
 
   // Other
 
@@ -170,6 +172,9 @@ public:
   // For postive integers n, r, finds floor(n ** (1/r)) through binary search
   // Very slow, but probably fine to use once
   static Bint integral_rth_root(const Bint &n, const BLOCK &r);
+
+  // Approximate binary logarithm using the first two digits
+  static double log_2(const Bint &n);
 
   // (Pseudo)random integer from 0 to n - 1 inclusive if n is positive,
   // and n + 1 to 0 inclusive if n is negative. If n is 0, returns 0.

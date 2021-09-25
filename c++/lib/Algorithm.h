@@ -22,7 +22,7 @@ bool is_probable_prime(Bint n, uint64_t rounds = 40);
 // Algorithm from:
 // https://www.cs.umd.edu/~gasarch/TOPICS/factoring/fastgauss.pdf
 std::vector<std::vector<int>>
-gf2_gaussian_elimination(std::vector<std::vector<bool>> matrix);
+gf2_gaussian_elimination(const std::vector<std::vector<uint32_t>> &matrix);
 
 // Wheel augmented sieve of Eratosthenes with prime basis 2, 3, 5, 7.
 //
@@ -63,5 +63,8 @@ prime_factors(const Bint &n,
 // If n is composite, returns a proper factor > 1 of n.
 // Otherwise, returns 1.
 Bint pollard_rho(const Bint &n);
+
+// Quadratic sieve factorization algorithm.
+Bint quadratic_sieve(const Bint &n);
 
 } // namespace Algorithm

@@ -151,5 +151,9 @@ int main() {
   // }
   // cout << endl;
 
-  cout << Algorithm::square_root_modulo_prime_power(56, 101, 3) << endl;
+  // cout << Algorithm::square_root_modulo_prime_power(56, 101, 3) << endl;
+
+  Bint a = "125000";
+  Bint b = "-1";
+  cout << a * b << endl;
 }
