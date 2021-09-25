@@ -424,7 +424,9 @@ prime_factors(const Bint &n,
 }
 
 Bint pollard_rho(const Bint &n) {
+  // std::cout << "[ " << n << std::flush;
   if (is_probable_prime(n)) {
+    // std::cout << " -> 1 ]" << std::flush;
     return 1;
   }
 
@@ -432,6 +434,8 @@ Bint pollard_rho(const Bint &n) {
 
   std::pair<Bint, uint32_t> p = factor_perfect_power(n);
   if (p.second != 1) {
+    // std::cout << " -> " << Bint::pow(p.first, p.second / 2) << "]"
+    //           << std::flush;
     return Bint::pow(p.first, p.second / 2);
   }
 
@@ -440,6 +444,7 @@ Bint pollard_rho(const Bint &n) {
   while (g == n) {
     Bint turtle = Bint::rand(n_minus_two) + 1;
     Bint hare = turtle;
+    // std::cout << n_minus_two << " " << turtle << " " << hare << std::endl;
     g = 1;
 
     while (g == 1) {
@@ -448,6 +453,9 @@ Bint pollard_rho(const Bint &n) {
       g = Bint::gcd(turtle - hare, n);
     }
   }
+
+  // std::cout << " -> " << Bint::gcd(g, n) << "]" << std::flush;
+
   return Bint::gcd(g, n);
 }
 
@@ -464,7 +472,7 @@ Bint quadratic_sieve(const Bint &n) {
   std::map<uint32_t, uint32_t> prime_base_back;
 
   Bint sqrt_n = Bint::integral_rth_root(n, 2);
-  uint32_t sqrt_n_bit_length = sqrt_n.bit_length();
+  int sqrt_n_bit_length = sqrt_n.bit_length();
 
   double ln_n = Bint::log_2(n) / 1.4426950408889634;
   approx_B = exp(sqrt(ln_n * log(ln_n) / 8));
@@ -499,7 +507,7 @@ Bint quadratic_sieve(const Bint &n) {
   uint32_t sieving_idx = 1;
 
   std::vector<Bint> sieve_results, sieve_result_root;
-  uint32_t *vals = new uint32_t[M];
+  int *vals = new int[M];
 
   do {
     uint32_t offset = sieving_idx / 2;
@@ -514,13 +522,15 @@ Bint quadratic_sieve(const Bint &n) {
     }
     std::cout << "sieving with new a: " << a << std::endl;
 
-    memset(vals, 0, M * sizeof(uint32_t));
+    for (uint32_t i = 0; i < M; i++) {
+      vals[i] = -sqrt_n_bit_length;
+    }
 
     for (uint32_t p : prime_base) {
       // std::cout << p << " started" << std::endl;
 
       uint32_t q = p;
-      uint32_t logp = Bint(p).bit_length();
+      int logp = Bint(p).bit_length();
 
       Bint rt = 0;
       for (uint32_t e = 1; e <= Bint::log_2(max_val) / logp; e++) {
@@ -563,11 +573,16 @@ Bint quadratic_sieve(const Bint &n) {
 
     size_t prev_results = sieve_results.size();
 
+    int lazy_bit_length =
+        ((Bint)offset * M + ((sieving_idx % 2 == 0) ? 0 : M)).bit_length();
+
+    // std::cout << "lazy_bit_length = " << lazy_bit_length << std::endl;
     for (uint32_t x = 0; x < M; x++) {
       // if (vals[x] >= ((a2 + x) * x + t).bit_length()) {
-      Bint sqrt_n_offset = sieving_idx % 2 == 0 ? ((Bint)offset * M + x)
-                                                : (-(Bint)offset * M + x);
-      if ((vals[x] >= sqrt_n_offset.bit_length() + sqrt_n_bit_length)) {
+      // Bint sqrt_n_offset = sieving_idx % 2 == 0 ? ((Bint)offset * M + x)
+      //                                           : (-(Bint)offset * M + x);
+      // if ((vals[x] >= (int)sqrt_n_offset.bit_length())) {
+      if ((vals[x] >= lazy_bit_length)) {
         Bint v = (a + x) * (a + x) - b;
 
         // we want to multiply things to make a square,
@@ -612,7 +627,7 @@ Bint quadratic_sieve(const Bint &n) {
         // we will use the first value as the "exponent" of -1
         gf2_smooth_vector[0] = (*it1 < 0) ? 1 : 0;
 
-        std::cout << ">";
+        std::cout << ">" << std::flush;
         std::map<Bint, uint32_t> pf =
             prime_factors((*it1).abs(), [](const Bint &b) {
               return Algorithm::pollard_rho(b);

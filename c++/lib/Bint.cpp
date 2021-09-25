@@ -1144,8 +1144,10 @@ Bint Bint::rand(const Bint &n) {
   uint32_t seed = std::chrono::system_clock::now().time_since_epoch().count();
   std::mt19937 twister(seed);
 
-  std::uniform_int_distribution<BLOCK> first_digit(
-      0, (1 << (32 - clz(n.data.back()))));
+  BLOCK first_digit_max = clz(n.data.back()) == 0
+                              ? -1
+                              : (((BLOCK)1 << (32 - clz(n.data.back()))) - 1);
+  std::uniform_int_distribution<BLOCK> first_digit(0, first_digit_max);
 
   int rsz_minus_1 = r.data.size() - 1;
   do {
