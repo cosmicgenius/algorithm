@@ -129,17 +129,17 @@ int main() {
   // cout << b1 << " " << b2 << endl << b1 - b2 << endl << b2 - b1 << endl;
   // cout << Bint::gcd(696969, 69264);
 
-  // vector<vector<bool>> m = {
-  //     {1, 1, 0, 0}, {1, 1, 0, 1}, {0, 0, 1, 1}, {0, 0, 1, 0}, {0, 0, 0, 1}};
+  vector<vector<uint32_t>> m = {
+      {1, 1, 0, 0}, {1, 1, 0, 1}, {0, 0, 1, 1}, {0, 0, 1, 0}, {0, 0, 0, 1}};
 
-  // vector<vector<int>> m2 = Algorithm::gf2_gaussian_elimination(m);
+  vector<vector<int>> m2 = Algorithm::gf2_gaussian_elimination(m);
 
-  // for (auto v : m2) {
-  //   for (auto i : v) {
-  //     cout << i << " ";
-  //   }
-  //   cout << endl;
-  // }
+  for (auto v : m2) {
+    for (auto i : v) {
+      cout << i << " ";
+    }
+    cout << endl;
+  }
 
   // int N = 3731;
 
@@ -153,7 +153,7 @@ int main() {
 
   // cout << Algorithm::square_root_modulo_prime_power(56, 101, 3) << endl;
 
-  Bint a = "125000";
-  Bint b = "-1";
-  cout << a * b << endl;
+  // Bint a = "12512312312312312312321000";
+  // Bint b = "-1";
+  // cout << a * b << endl;
 }

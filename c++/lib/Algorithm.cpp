@@ -78,33 +78,49 @@ std::vector<std::vector<int>>
 gf2_gaussian_elimination(const std::vector<std::vector<uint32_t>> &matrix) {
   std::vector<std::vector<int>> res;
 
-  size_t n, m;
-  n = matrix.size();
+  const int n = matrix.size();
+  const int N = n / 32 + (n % 32 != 0);
   if (n == 0) {
-    return res;
+    throw std::invalid_argument("The given matrix has no rows.");
   }
-  m = matrix[0].size();
+  const int m = matrix[0].size();
   if (m == 0) {
-    return res;
+    throw std::invalid_argument("The given matrix has no column.");
   }
 
   for (std::vector<uint32_t> v : matrix) {
     if (v.size() != m) {
-      return res;
+      throw std::invalid_argument(
+          "The given matrix has inconsistent row lengths.");
     }
   }
 
-  std::vector<std::vector<bool>> gf2_matrix;
-  gf2_matrix.reserve(n);
+  std::vector<std::vector<uint32_t>> gf2_matrix_transpose;
+  gf2_matrix_transpose.reserve(m);
 
-  for (size_t i = 0; i < n; i++) {
-    std::vector<bool> gf2_vector;
-    gf2_vector.reserve(m);
+  for (int c = 0; c < m; c++) {
+    std::vector<uint32_t> gf2_vector;
+    gf2_vector.reserve(N);
 
-    for (size_t j = 0; j < m; j++) {
-      gf2_vector.push_back(matrix[i][j] % 2 == 1);
+    for (int rq = 0; rq <= n - 32; rq += 32) {
+      uint32_t t = 0;
+      for (int rr = 0; rr < 32; rr++) {
+        if (matrix[rq + rr][c] % 2 == 1) {
+          t |= (1 << rr);
+        }
+      }
+      gf2_vector.push_back(t);
     }
-    gf2_matrix.push_back(gf2_vector);
+    if (n % 32) {
+      uint32_t t = 0;
+      for (size_t rr = 0; rr < n % 32; rr++) {
+        if (matrix[(n / 32) * 32 + rr][c] % 2 == 1) {
+          t |= (1 << rr);
+        }
+      }
+      gf2_vector.push_back(t);
+    }
+    gf2_matrix_transpose.push_back(gf2_vector);
   }
 
   bool marked[n];
@@ -115,7 +131,7 @@ gf2_gaussian_elimination(const std::vector<std::vector<uint32_t>> &matrix) {
   for (int c = 0; c < m; c++) {
     int pivot = -1;
     for (int r = 0; r < n; r++) {
-      if (gf2_matrix[r][c]) {
+      if (gf2_matrix_transpose[c][r / 32] & (1 << (r % 32))) {
         pivot = r;
         break;
       }
@@ -126,10 +142,27 @@ gf2_gaussian_elimination(const std::vector<std::vector<uint32_t>> &matrix) {
     if (pivot != -1) {
       marked[pivot] = true;
 
-      for (int c2 = 0; c2 < m; c2++) {
-        if (gf2_matrix[pivot][c2] && c2 != c) {
-          for (int r = 0; r < n; r++) {
-            gf2_matrix[r][c2] = gf2_matrix[r][c2] ^ gf2_matrix[r][c];
+      int pivot_q = pivot / 32;
+      int pow2_pivot_r = (1 << (pivot % 32));
+
+      // for (int c2 = 0; c2 < m; c2++) {
+      //   if (gf2_matrix[pivot][c2] && c2 != c) {
+      //     for (int r = 0; r < n; r++) {
+      //       gf2_matrix[r][c2] = gf2_matrix[r][c2] ^ gf2_matrix[r][c];
+      //     }
+      //   }
+      // }
+      for (int c2 = 0; c2 < c; c2++) {
+        if (gf2_matrix_transpose[c2][pivot_q] & pow2_pivot_r) {
+          for (int R = 0; R < N; R++) {
+            gf2_matrix_transpose[c2][R] ^= gf2_matrix_transpose[c][R];
+          }
+        }
+      }
+      for (int c2 = c + 1; c2 < m; c2++) {
+        if (gf2_matrix_transpose[c2][pivot_q] & pow2_pivot_r) {
+          for (int R = 0; R < N; R++) {
+            gf2_matrix_transpose[c2][R] ^= gf2_matrix_transpose[c][R];
           }
         }
       }
@@ -140,8 +173,10 @@ gf2_gaussian_elimination(const std::vector<std::vector<uint32_t>> &matrix) {
     if (!marked[r]) {
       std::vector<int> needed_rows(1, r);
 
+      int rq = r / 32, pow2_rr = (1 << (r % 32));
+
       for (int c = 0; c < m; c++) {
-        if (gf2_matrix[r][c]) {
+        if (gf2_matrix_transpose[c][rq] & pow2_rr) {
           needed_rows.push_back(row_marked[c]);
         }
       }
@@ -469,7 +504,7 @@ Bint quadratic_sieve(const Bint &n) {
   double approx_B;
   uint32_t B, M, V;
   std::set<uint32_t> prime_base;
-  std::map<uint32_t, uint32_t> prime_base_back;
+  // std::map<uint32_t, uint32_t> prime_base_back;
 
   Bint sqrt_n = Bint::integral_rth_root(n, 2);
   int sqrt_n_bit_length = sqrt_n.bit_length();
@@ -477,15 +512,15 @@ Bint quadratic_sieve(const Bint &n) {
   double ln_n = Bint::log_2(n) / 1.4426950408889634;
   approx_B = exp(sqrt(ln_n * log(ln_n) / 8));
 
-  V = (uint32_t)(approx_B * (log(approx_B) + 0.9) * 2.2);
+  V = (uint32_t)(approx_B * (log(approx_B) + log(log(approx_B))) * 2);
 
   std::vector<uint32_t> possible_primes = primes_less_than(V);
 
-  size_t sz = 0;
+  // size_t sz = 0;
   for (uint32_t p : possible_primes) {
     if (legendre_symbol(n, p) == 1) {
       prime_base.insert(p);
-      prime_base_back[p] = sz++;
+      // prime_base_back[p] = sz++;
     }
   }
 
@@ -507,7 +542,32 @@ Bint quadratic_sieve(const Bint &n) {
   uint32_t sieving_idx = 1;
 
   std::vector<Bint> sieve_results, sieve_result_root;
+  uint32_t verified_sieve_results = 0;
   int *vals = new int[M];
+
+  std::map<uint32_t, std::map<uint32_t, Bint>> nsqrt;
+  std::map<uint32_t, uint32_t> nlog;
+
+  std::cout << "initialization step" << std::endl;
+  for (uint32_t p : prime_base) {
+    uint32_t q = p;
+    int logp = Bint(p).bit_length();
+    nlog[p] = logp;
+
+    Bint rt = 0;
+    for (uint32_t e = 1; e <= Bint::log_2(M) / logp; e++) {
+      try {
+        rt = square_root_modulo_prime_power(n, p, e, rt);
+        nsqrt[p][e] = rt;
+      } catch (const std::domain_error &err) {
+        break;
+      }
+    }
+  }
+
+  std::vector<std::vector<uint32_t>> gf2_smooth_matrix;
+  std::vector<uint32_t> gf2_smooth_vector;
+  gf2_smooth_vector.resize(B + 1);
 
   do {
     uint32_t offset = sieving_idx / 2;
@@ -532,19 +592,15 @@ Bint quadratic_sieve(const Bint &n) {
       uint32_t q = p;
       int logp = Bint(p).bit_length();
 
-      Bint rt = 0;
-      for (uint32_t e = 1; e <= Bint::log_2(max_val) / logp; e++) {
+      for (const std::pair<uint32_t, Bint> &p_nsqrt : nsqrt[p]) {
+        const uint32_t &e = p_nsqrt.first;
+        const Bint &rt = p_nsqrt.second;
+
         uint32_t st1 = 0, st2 = 0;
 
         if (p == 2 && e == 1) {
           st2 = ((a & 1).to_bool() + (b & 1).to_bool()) % 2;
         } else {
-          try {
-            rt = square_root_modulo_prime_power(b, p, e, rt);
-          } catch (const std::domain_error &err) {
-            break;
-          }
-
           st1 = (((-a - rt) % q + q) % q).to_uint32_t();
           st2 = (((-a + rt) % q + q) % q).to_uint32_t();
 
@@ -561,7 +617,7 @@ Bint quadratic_sieve(const Bint &n) {
       }
     }
 
-    std::cout << "checking sieved results" << std::endl;
+    // std::cout << "checking sieved results" << std::endl;
     // std::cout << "vals array = [ ";
     // for (int i = 0; i < M; i++) {
     //   std::cout << vals[i] << " ";
@@ -605,84 +661,107 @@ Bint quadratic_sieve(const Bint &n) {
 
     uint32_t S = sieve_results.size();
 
-    std::cout << S - prev_results << " results found" << std::endl;
-    std::cout << S << " results in total" << std::endl;
+    std::cout << S - prev_results << " results found, " << S << " / "
+              << (uint32_t)(B + ln_n) << " results in total" << std::endl;
 
-    while (S > B) {
+    while (S > B + ln_n) {
       std::cout << "generating matrix from sieved results" << std::endl;
-      std::vector<std::vector<uint32_t>> gf2_smooth_matrix;
 
-      std::vector<Bint>::iterator it1 = sieve_results.begin(),
-                                  it2 = sieve_result_root.begin();
-      while (it1 != sieve_results.end()) {
+      std::vector<Bint>::iterator res_it = sieve_results.begin() +
+                                           verified_sieve_results,
+                                  res_rt_it = sieve_result_root.begin() +
+                                              verified_sieve_results;
+      std::vector<std::vector<uint32_t>>::iterator matrix_it;
+
+      uint32_t new_res = 0, tot = 0;
+
+      while (res_it != sieve_results.end()) {
+        tot++;
         // std::cout << "sieve results: [ ";
         // for (Bint b : sieve_results) {
         //   std::cout << b << " ";
         // }
         // std::cout << "]" << std::endl;
 
-        std::vector<uint32_t> gf2_smooth_vector;
-        gf2_smooth_vector.resize(B + 1);
-
         // we will use the first value as the "exponent" of -1
-        gf2_smooth_vector[0] = (*it1 < 0) ? 1 : 0;
+        gf2_smooth_vector[0] = (*res_it < 0) ? 1 : 0;
 
-        std::cout << ">" << std::flush;
-        std::map<Bint, uint32_t> pf =
-            prime_factors((*it1).abs(), [](const Bint &b) {
-              return Algorithm::pollard_rho(b);
-            });
-        bool actually_smooth = true;
-        for (const std::pair<Bint, uint32_t> &prime_power : pf) {
-          if (prime_base.find(prime_power.first.to_uint32_t()) ==
-              prime_base.end()) {
+        // std::cout << ">" << std::flush;
+        // std::map<Bint, uint32_t> pf =
+        //     prime_factors((*res_it).abs(), [](const Bint &b) {
+        //       return Algorithm::pollard_rho(b);
+        //     });
+        // bool actually_smooth = true;
+        // for (const std::pair<Bint, uint32_t> &prime_power : pf) {
+        //   if (prime_base.find(prime_power.first.to_uint32_t()) ==
+        //       prime_base.end()) {
 
-            // std::cout << *it1 << " fails; divisible by "
-            //           << prime_power.first.to_uint32_t() << std::endl;
+        //     // std::cout << *res_it << " fails; divisible by "
+        //     //           << prime_power.first.to_uint32_t() << std::endl;
 
-            // std::cout << ".";
-            actually_smooth = false;
-            break;
+        //     // std::cout << ".";
+        //     actually_smooth = false;
+        //     break;
+        //   }
+        // }
+
+        // Trial division is actually faster
+        Bint v = (*res_it).abs();
+        int idx = 0;
+        for (uint32_t p : prime_base) {
+          gf2_smooth_vector[++idx] = 0;
+          while (v % p == 0) {
+            gf2_smooth_vector[idx]++;
+            v /= p;
           }
         }
 
-        if (!actually_smooth) {
-          it1 = sieve_results.erase(it1);
-          it2 = sieve_result_root.erase(it2);
+        if (v != 1) {
+          res_it = sieve_results.erase(res_it);
+          res_rt_it = sieve_result_root.erase(res_rt_it);
 
           // std::cout << "deleted one" << std::endl;
 
           continue;
         }
 
-        std::cout << *it1 << " is verified" << std::endl;
+        // std::cout << *res_it << " is verified" << std::endl;
+        std::cout << "verified smooth numbers: " << new_res + 1 << " / " << tot
+                  << " (" << 1000.0 * (new_res + 1) / tot / 10.0 << "%)" << '\r'
+                  << std::flush;
 
-        for (uint32_t p : prime_base) {
-          gf2_smooth_vector[prime_base_back[p] + 1] = pf[p];
-        }
+        // int idx = 0;
+        // for (uint32_t p : prime_base) {
+        //   gf2_smooth_vector[++idx] = pf[p];
+        // }
 
         gf2_smooth_matrix.push_back(gf2_smooth_vector);
 
-        it1++;
-        it2++;
-        std::cout << "./";
+        res_it++;
+        res_rt_it++;
+        // std::cout << "./";
+        new_res++;
       }
       S = sieve_results.size();
+      verified_sieve_results = S;
 
-      if (S <= B + 1) {
+      if (S <= B + ln_n) {
         break;
       }
 
       // std::vector<std::vector<bool>> gf2_smooth_matrix_bool =
       // gf2_smooth_matrix;
 
+      std::cout << std::endl;
       std::cout << "starting gaussian elimination after finding " << S
-                << " > B = " << B << " smooth numbers" << std::endl;
+                << " > B + ln(n) = " << B + (int)ln_n << " smooth numbers"
+                << std::endl;
 
       std::vector<std::vector<int>> all_subsets =
           gf2_gaussian_elimination(gf2_smooth_matrix);
 
-      std::cout << "extracting g" << std::endl;
+      std::cout << "found " << all_subsets.size()
+                << " linear dependencies, extracting g" << std::endl;
 
       bool marked_for_deletion[S];
 
@@ -723,19 +802,23 @@ Bint quadratic_sieve(const Bint &n) {
       }
 
       // It failed
-      it1 = sieve_results.begin();
-      it2 = sieve_result_root.begin();
+      res_it = sieve_results.begin();
+      res_rt_it = sieve_result_root.begin();
+      matrix_it = gf2_smooth_matrix.begin();
       for (uint32_t idx = 0; idx < S; idx++) {
         if (marked_for_deletion[idx]) {
-          it1 = sieve_results.erase(it1);
-          it2 = sieve_result_root.erase(it2);
+          res_it = sieve_results.erase(res_it);
+          res_rt_it = sieve_result_root.erase(res_rt_it);
+          matrix_it = gf2_smooth_matrix.erase(matrix_it);
         } else {
-          it1++;
-          it2++;
+          res_it++;
+          res_rt_it++;
+          matrix_it++;
         }
       }
 
       S = sieve_results.size();
+      verified_sieve_results = S;
     }
     // delete[] vals;
     // return 1;

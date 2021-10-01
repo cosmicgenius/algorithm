@@ -126,10 +126,12 @@ void Bint::assign_mul(const Bint &a, const Bint &b, Bint &res) {
   // std::cout << n << " " << m << std::endl;
   if (m == 1) {
     res = a * b.data[0];
+    res.sgn = a.sgn * b.sgn;
     return;
   }
   if (n == 1) {
     res = b * a.data[0];
+    res.sgn = a.sgn * b.sgn;
     return;
   }
 
@@ -164,6 +166,7 @@ void Bint::assign_mul(const Bint &a, const Bint &b, Bint &res) {
       }
 
       res.resize();
+      res.sgn = a.sgn * b.sgn;
 
       // std::cout << "Found: " << a << " * " << b << " = " << res << std::endl;
 
@@ -183,6 +186,7 @@ void Bint::assign_mul(const Bint &a, const Bint &b, Bint &res) {
         res.data[i + n] = carry;
       }
       res.resize();
+      res.sgn = a.sgn * b.sgn;
 
       // std::cout << "Found: " << a << " * " << b << " = " << res << std::endl;
 
@@ -983,6 +987,7 @@ std::string Bint::to_string() const {
 
   Bint r = *this;
   int8_t sgn = r.sgn;
+  r.sgn = 1;
 
   while (r.sgn != 0) {
     std::pair<Bint, BLOCK> p;
