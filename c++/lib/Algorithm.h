@@ -64,7 +64,4 @@ prime_factors(const Bint &n,
 // Otherwise, returns 1.
 Bint pollard_rho(const Bint &n);
 
-// Quadratic sieve factorization algorithm.
-Bint quadratic_sieve(const Bint &n);
-
 } // namespace Algorithm
