@@ -38,6 +38,8 @@ std::pair<Bint, uint32_t> factor_perfect_power(Bint n) {
 }
 
 bool is_probable_prime(Bint n, uint64_t rounds = 40) {
+  if (n == 1)
+    return false;
   if (!(n & 1).to_bool())
     return n == 2;
   if (n % 3 == 0)
@@ -491,6 +493,37 @@ Bint pollard_rho(const Bint &n) {
   // std::cout << " -> " << Bint::gcd(g, n) << "]" << std::flush;
 
   return Bint::gcd(g, n);
+}
+
+std::tuple<Bint, Bint, Bint> extended_euclidean(const Bint &a, const Bint &b) {
+  Bint u1 = 1, u2 = 0, v1 = 0, v2 = 1;
+  Bint u3 = a * u1 + b * u2, v3 = a * v1 + b * v2;
+
+  while (v3 != 0) {
+    Bint q = u3 / v3;
+    Bint t1 = u1 - q * v1;
+    Bint t2 = u2 - q * v2;
+
+    u1 = v1;
+    u2 = v2;
+
+    v1 = t1;
+    v2 = t2;
+
+    u3 = a * u1 + b * u2;
+    v3 = a * v1 + b * v2;
+  }
+  return std::make_tuple(u1, u2, a * u1 + b * u2);
+}
+
+Bint modular_inv(const Bint &a, const Bint &m) {
+  std::tuple<Bint, Bint, Bint> t = extended_euclidean(a, m);
+  if (std::get<2>(t) != 1) {
+    throw std::domain_error("a = " + a.to_string() +
+                            " and m = " + m.to_string() + " are not coprime.");
+  }
+
+  return (std::get<0>(t) % m + m) % m;
 }
 
 } // namespace Algorithm

@@ -64,4 +64,10 @@ prime_factors(const Bint &n,
 // Otherwise, returns 1.
 Bint pollard_rho(const Bint &n);
 
+// Returns a tuple (x, y, c) such that ax + by = c and c = gcd(a, b)
+std::tuple<Bint, Bint, Bint> extended_euclidean(const Bint &a, const Bint &b);
+
+// Returns a^(-1) mod m. Throws a domain error if gcd(a, m) != 1
+Bint modular_inv(const Bint &a, const Bint &m);
+
 } // namespace Algorithm

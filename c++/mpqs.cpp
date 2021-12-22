@@ -7,7 +7,7 @@
 #include <map>
 #include <set>
 
-Bint quadratic_sieve(const Bint &n) {
+Bint mpqs(const Bint &n) {
   if (Algorithm::is_probable_prime(n)) {
     return 1;
   }
@@ -39,27 +39,25 @@ Bint quadratic_sieve(const Bint &n) {
   }
 
   B = prime_base.size();
-  M = std::min(std::min((uint32_t)100000000, B * B * B * 2),
-               sqrt_n.to_uint32_t()); // conserve memory by sieving max
-                                      // 100 million at a time
+  M = floor(pow(B, 1.2)) * 60;
 
   std::cout << "approx_B = " << approx_B << std::endl;
   std::cout << "B = " << B << std::endl;
   std::cout << "M = " << M << std::endl;
   std::cout << "V = " << V << std::endl;
-  std::cout << "prime_base = [ ";
-  for (uint32_t p : prime_base) {
-    std::cout << p << " ";
-  }
-  std::cout << "]" << std::endl;
+  // std::cout << "prime_base = [ ";
+  // for (uint32_t p : prime_base) {
+  //   std::cout << p << " ";
+  // }
+  // std::cout << "]" << std::endl;
 
-  uint32_t sieving_idx = 1;
+  uint32_t poly = 1;
 
   std::vector<Bint> sieve_results, sieve_result_root;
   uint32_t verified_sieve_results = 0;
-  int *vals = new int[M];
+  int *vals = new int[2 * M + 1];
 
-  std::map<uint32_t, std::vector<Bint>> nsqrt;
+  std::map<uint32_t, Bint> nsqrt;
   std::map<uint32_t, uint32_t> nlog;
 
   std::cout << "initialization step" << std::endl;
@@ -69,91 +67,105 @@ Bint quadratic_sieve(const Bint &n) {
     nlog[p] = logp;
 
     Bint rt = 0;
-    nsqrt[p] = std::vector<Bint>(1, 0);
-    for (uint32_t e = 1; e <= Bint::log_2(M) / logp; e++) {
-      try {
-        rt = Algorithm::square_root_modulo_prime_power(n, p, e, rt);
-        nsqrt[p].push_back(rt);
-      } catch (const std::domain_error &err) {
-        break;
-      }
+    try {
+      rt = Algorithm::square_root_modulo_prime(n, p);
+    } catch (const std::domain_error &err) {
+      break;
     }
+    nsqrt[p] = rt;
   }
 
   std::vector<std::vector<uint32_t>> gf2_smooth_matrix;
   std::vector<uint32_t> gf2_smooth_vector;
   gf2_smooth_vector.resize(B + 1);
 
+  Bint q_min =
+      Bint::integral_rth_root(Bint::integral_rth_root(n << 1, 2) / M, 2);
+  if (q_min < 3) {
+    q_min = 3;
+  }
+
   do {
-    uint32_t offset = sieving_idx / 2;
-
     bool done = false;
-    Bint a = sieving_idx % 2 == 0 ? (sqrt_n + (Bint)offset * M)
-                                  : (sqrt_n - (Bint)offset * M);
-    Bint b = n;
-    Bint max_val = (sqrt_n * (offset + 1) * M) << 1;
-    if (a < 0) {
-      continue;
-    }
-    std::cout << "sieving with new a: " << a << std::endl;
+    // std::cout << q_min << std::endl;
 
-    for (uint32_t i = 0; i < M; i++) {
+    Bint q = q_min;
+
+    while (!Algorithm::is_probable_prime(q) ||
+           Algorithm::legendre_symbol(n, q) != 1) {
+      // std::cout << q << std::endl;
+      q++;
+    }
+
+    Bint q_inv = Algorithm::modular_inv(q, n);
+
+    q_min = q + 1;
+    Bint a = q * q;
+    Bint b = Algorithm::square_root_modulo_prime_power(n, q, 2);
+
+    auto find_q =
+        std::find(prime_base.begin(), prime_base.end(), q.to_uint32_t());
+    if (find_q != prime_base.end()) {
+      prime_base.erase(find_q);
+    }
+
+    // std::cout << "sieving with new a, b: (" << a << " " << b << ")"
+    // << std::endl;
+
+    for (uint32_t i = 0; i <= 2 * M; i++) {
       vals[i] = -sqrt_n_bit_length;
     }
 
     for (uint32_t p : prime_base) {
-      // std::cout << p << " started" << std::endl;
+      // std::cout << "p = " << p << " started" << std::endl;
 
-      uint32_t q = p;
+      uint32_t a_inv = Bint::pow(a, p - 2, p).to_uint32_t();
+      // std::cout << "p, a_inv: " << p << ", " << a_inv << std::endl;
       int logp = Bint(p).bit_length();
 
-      for (int e = 1, _end = nsqrt[p].size(); e < _end; e++) {
-        const Bint &rt = nsqrt[p][e];
+      const Bint &rt = nsqrt[p];
 
-        uint32_t st1 = 0, st2 = 0;
+      uint32_t st1 = 0, st2 = 0;
 
-        if (p == 2 && e == 1) {
-          st2 = ((a & 1).to_bool() + (b & 1).to_bool()) % 2;
-        } else {
-          st1 = (((-a - rt) % q + q) % q).to_uint32_t();
-          st2 = (((-a + rt) % q + q) % q).to_uint32_t();
+      if (p == 2) {
+        st2 = ((a & 1).to_bool() + (b & 1).to_bool()) % 2;
+      } else {
+        st1 = ((((-rt - b) * a_inv + M) % p + p) % p).to_uint32_t();
+        st2 = ((((rt - b) * a_inv + M) % p + p) % p).to_uint32_t();
 
-          // std::cout << st1 << " " << st2 << std::endl;
+        // std::cout << "rt: " << rt << std::endl;
+        // std::cout << "(st1, st2): (" << st1 << ", " << st2 << ")" <<
+        // std::endl;
 
-          for (uint32_t x = st1; x < M; x += q) {
-            vals[x] += logp;
-          }
-        }
-        for (uint32_t x = st2; x < M; x += q) {
+        for (uint32_t x = st1; x <= 2 * M; x += p) {
           vals[x] += logp;
         }
-        q *= p;
+      }
+      for (uint32_t x = st2; x <= 2 * M; x += p) {
+        vals[x] += logp;
       }
     }
 
     // std::cout << "checking sieved results" << std::endl;
     // std::cout << "vals array = [ ";
-    // for (int i = 0; i < M; i++) {
+    // for (int i = 0; i <= 2 * M; i++) {
     //   std::cout << vals[i] << " ";
     // }
     // std::cout << "]" << std::endl;
 
-    Bint t = a * a - b;
-    Bint a2 = a << 1;
-
     size_t prev_results = sieve_results.size();
-
-    int lazy_bit_length =
-        ((Bint)offset * M + ((sieving_idx % 2 == 0) ? 0 : M)).bit_length();
+    int lazy_bit_length = Bint(M).bit_length();
 
     // std::cout << "lazy_bit_length = " << lazy_bit_length << std::endl;
-    for (uint32_t x = 0; x < M; x++) {
+    for (uint32_t x = 0; x < 2 * M + 1; x++) {
       // if (vals[x] >= ((a2 + x) * x + t).bit_length()) {
       // Bint sqrt_n_offset = sieving_idx % 2 == 0 ? ((Bint)offset * M + x)
       //                                           : (-(Bint)offset * M + x);
       // if ((vals[x] >= (int)sqrt_n_offset.bit_length())) {
-      if ((vals[x] >= lazy_bit_length)) {
-        Bint v = (a + x) * (a + x) - b;
+      if (vals[x] >= lazy_bit_length - 1) {
+        Bint u = a * (Bint(x) - M) + b;
+        Bint v = (u * u - n) / a;
+        // std::cout << v << " " << x << std::endl;
 
         // we want to multiply things to make a square,
         // if it's already a square, technically we could just immediately try
@@ -169,16 +181,21 @@ Bint quadratic_sieve(const Bint &n) {
         // std::cout << "found " << x << " " << v << std::endl;
 
         sieve_results.push_back(v);
-        sieve_result_root.push_back(a + x);
+        sieve_result_root.push_back(u * q_inv % n);
       }
     }
 
     uint32_t S = sieve_results.size();
 
-    std::cout << S - prev_results << " results found, " << S << " / "
-              << (uint32_t)(B + ln_n) << " results in total" << std::endl;
+    std::cout << "Sieved " << poly << " polynomials. " << S - prev_results
+              << " results found in the last polynomial. " << S << " / "
+              << (uint32_t)(B + ln_n) << " results in total"
+              << " (" << 1000.0 * S / ((uint32_t)(B + ln_n)) / 10.0 << "%). "
+              << "Around " << round(1000.0 * S / poly) / 1000.0
+              << " per polynomial    " << '\r' << std::flush;
 
     while (S > B + ln_n) {
+      std::cout << std::endl;
       std::cout << "generating matrix from sieved results" << std::endl;
 
       std::vector<Bint>::iterator res_it = sieve_results.begin() +
@@ -335,8 +352,8 @@ Bint quadratic_sieve(const Bint &n) {
       verified_sieve_results = S;
     }
     // delete[] vals;
-    // return 1;
-  } while (++sieving_idx);
+    // return 71;
+  } while (++poly);
 
   return 1;
 }
@@ -347,8 +364,8 @@ void print_prime_fact(Bint n) {
     return;
   }
 
-  std::map<Bint, uint32_t> pf = Algorithm::prime_factors(
-      n, [](const Bint &b) { return quadratic_sieve(b); });
+  std::map<Bint, uint32_t> pf =
+      Algorithm::prime_factors(n, [](const Bint &b) { return mpqs(b); });
 
   auto power_text = [](std::pair<Bint, uint32_t> p) {
     if (p.second == 1) {
