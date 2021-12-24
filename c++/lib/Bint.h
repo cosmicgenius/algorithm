@@ -37,15 +37,32 @@ private:
   // Assigns answer to res (which is assumed to start at 0)
   static void assign_mul(const Bint &a, const Bint &b, Bint &res);
 
-  // Returns a pair containing floor(divident / divisor) and dividend % divisor
-  // Normal mathematical division, i.e. always rounds down, remainder is always
-  // positive
-  // Assigns answer to {quotient, remainder} (which are assumed to start 0)
-  static void assign_div_m(const Bint &dividend, const BLOCK &divisor,
-                           Bint &quotient, BLOCK &remainder);
+  /*
+    Returns a pair containing floor(|divident| / |divisor|) and |dividend| %
+    |divisor|.
 
-  // Division, see the public div
-  // Assigns answer to {quotient, remainder} (which are assumed to start 0)
+    Assigns the answer to {quotient, remainder} (which are assumed to start 0)
+  */
+  static void assign_div_abs(const Bint &dividend, const BLOCK &divisor,
+                             Bint &quotient, BLOCK &remainder);
+  static void assign_div_abs(const Bint &dividend, const Bint &divisor,
+                             Bint &quotient, Bint &remainder);
+
+  /*
+    Returns a pair containing floor(divident / divisor) and
+    dividend % divisor, where 0 <= dividend % divisor < |divisor|.
+    Hence, -7 / 3 = -3 and -7 % 3 = 2.
+
+    Assigns the answer to {quotient, remainder} (which are assumed to start 0)
+  */
+  static void assign_div_m(const Bint &dividend, const Bint &divisor,
+                           Bint &quotient, Bint &remainder);
+
+  /*
+    Division, see the public div.
+
+    Assigns answer to {quotient, remainder} (which are assumed to start 0)
+  */
   static void assign_div(const Bint &dividend, const Bint &divisor,
                          Bint &quotient, Bint &remainder);
 
@@ -155,8 +172,19 @@ public:
   // all nonzero n, and 0 for n = 0
   size_t bit_length() const;
 
-  // Returns a pair containing floor(divident / divisor) and dividend % divisor
+  /*
+    Returns a pair containing divident / divisor and dividend % divisor
+
+    Division is done in the normal c++ way, i.e. -7 / 3 = -2 and -7 % 3 = -1.
+  */
   static std::pair<Bint, Bint> div(const Bint &dividend, const Bint &divisor);
+
+  /*
+    Returns a pair containing floor(divident / divisor) and
+    dividend % divisor, where 0 <= dividend % divisor < |divisor|.
+    Hence, -7 / 3 = -3 and -7 % 3 = 2.
+  */
+  static std::pair<Bint, Bint> div_m(const Bint &dividend, const Bint &divisor);
 
   // Finds a ** b.
   //

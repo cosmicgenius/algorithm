@@ -39,7 +39,7 @@ Bint mpqs(const Bint &n) {
   }
 
   B = prime_base.size();
-  M = floor(pow(B, 1.2)) * 60;
+  M = floor(pow(B, 1.7) * 0.8);
 
   std::cout << "approx_B = " << approx_B << std::endl;
   std::cout << "B = " << B << std::endl;
@@ -85,7 +85,11 @@ Bint mpqs(const Bint &n) {
     q_min = 3;
   }
 
+  clock_t q_find_time = 0, init_time = 0, calc_time = 0, assign_time = 0;
+  clock_t last = clock();
+
   do {
+    last = clock();
     bool done = false;
     // std::cout << q_min << std::endl;
 
@@ -96,6 +100,8 @@ Bint mpqs(const Bint &n) {
       // std::cout << q << std::endl;
       q++;
     }
+    q_find_time += clock() - last;
+    last = clock();
 
     Bint q_inv = Algorithm::modular_inv(q, n);
 
@@ -103,23 +109,33 @@ Bint mpqs(const Bint &n) {
     Bint a = q * q;
     Bint b = Algorithm::square_root_modulo_prime_power(n, q, 2);
 
+    // Usually q >> any prime in the prime base, but just to be safe, remove it
     auto find_q =
         std::find(prime_base.begin(), prime_base.end(), q.to_uint32_t());
     if (find_q != prime_base.end()) {
       prime_base.erase(find_q);
     }
 
+    init_time += clock() - last;
+    last = clock();
+
     // std::cout << "sieving with new a, b: (" << a << " " << b << ")"
-    // << std::endl;
+    //           << std::endl;
 
     for (uint32_t i = 0; i <= 2 * M; i++) {
       vals[i] = -sqrt_n_bit_length;
     }
 
+    assign_time += clock() - last;
+    last = clock();
+
     for (uint32_t p : prime_base) {
       // std::cout << "p = " << p << " started" << std::endl;
 
-      uint32_t a_inv = Bint::pow(a, p - 2, p).to_uint32_t();
+      // When p is small (and also prime), this is faster than the extended
+      // euclidean algorithm
+      // uint32_t a_inv = Bint::pow(a, p - 2, p).to_uint32_t();
+      uint32_t a_inv = Algorithm::modular_inv_mod_prime(a, p).to_uint32_t();
       // std::cout << "p, a_inv: " << p << ", " << a_inv << std::endl;
       int logp = Bint(p).bit_length();
 
@@ -127,15 +143,19 @@ Bint mpqs(const Bint &n) {
 
       uint32_t st1 = 0, st2 = 0;
 
+      init_time += clock() - last;
+      last = clock();
+
       if (p == 2) {
         st2 = ((a & 1).to_bool() + (b & 1).to_bool()) % 2;
       } else {
-        st1 = ((((-rt - b) * a_inv + M) % p + p) % p).to_uint32_t();
-        st2 = ((((rt - b) * a_inv + M) % p + p) % p).to_uint32_t();
-
+        st1 = Bint::div_m((-rt - b) * a_inv + M, p).second.to_uint32_t();
+        st2 = Bint::div_m((rt - b) * a_inv + M, p).second.to_uint32_t();
         // std::cout << "rt: " << rt << std::endl;
         // std::cout << "(st1, st2): (" << st1 << ", " << st2 << ")" <<
         // std::endl;
+        calc_time += clock() - last;
+        last = clock();
 
         for (uint32_t x = st1; x <= 2 * M; x += p) {
           vals[x] += logp;
@@ -144,6 +164,9 @@ Bint mpqs(const Bint &n) {
       for (uint32_t x = st2; x <= 2 * M; x += p) {
         vals[x] += logp;
       }
+
+      assign_time += clock() - last;
+      last = clock();
     }
 
     // std::cout << "checking sieved results" << std::endl;
@@ -154,7 +177,7 @@ Bint mpqs(const Bint &n) {
     // std::cout << "]" << std::endl;
 
     size_t prev_results = sieve_results.size();
-    int lazy_bit_length = Bint(M).bit_length();
+    int lazy_bit_length = Bint(M).bit_length() - 1;
 
     // std::cout << "lazy_bit_length = " << lazy_bit_length << std::endl;
     for (uint32_t x = 0; x < 2 * M + 1; x++) {
@@ -162,7 +185,7 @@ Bint mpqs(const Bint &n) {
       // Bint sqrt_n_offset = sieving_idx % 2 == 0 ? ((Bint)offset * M + x)
       //                                           : (-(Bint)offset * M + x);
       // if ((vals[x] >= (int)sqrt_n_offset.bit_length())) {
-      if (vals[x] >= lazy_bit_length - 1) {
+      if (vals[x] >= lazy_bit_length) {
         Bint u = a * (Bint(x) - M) + b;
         Bint v = (u * u - n) / a;
         // std::cout << v << " " << x << std::endl;
@@ -197,6 +220,11 @@ Bint mpqs(const Bint &n) {
     while (S > B + ln_n) {
       std::cout << std::endl;
       std::cout << "generating matrix from sieved results" << std::endl;
+      std::cout << "Sieve time estimates: q_find=" << q_find_time
+                << " init=" << init_time << " calc=" << calc_time
+                << " assign=" << assign_time << ", efficiency="
+                << (double)(q_find_time + init_time + calc_time) / assign_time
+                << std::endl;
 
       std::vector<Bint>::iterator res_it = sieve_results.begin() +
                                            verified_sieve_results,

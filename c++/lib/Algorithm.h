@@ -70,4 +70,8 @@ std::tuple<Bint, Bint, Bint> extended_euclidean(const Bint &a, const Bint &b);
 // Returns a^(-1) mod m. Throws a domain error if gcd(a, m) != 1
 Bint modular_inv(const Bint &a, const Bint &m);
 
+// Returns a^(-1) mod p. Much faster than the general modular_inv function.
+// Throws a domain error if p|a
+Bint modular_inv_mod_prime(const Bint &a, const Bint &p);
+
 } // namespace Algorithm

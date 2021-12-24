@@ -316,11 +316,40 @@ int legendre_symbol(const Bint &a, const Bint &p) {
     return 0;
   }
 
-  Bint power = Bint::pow(a_mod_p, (p - 1) >> 1, p);
-  if (power == 1) {
-    return 1;
+  // Euler Criterion is not good
+
+  // Bint power = Bint::pow(a_mod_p, (p - 1) >> 1, p);
+  // if (power == 1) {
+  //   return 1;
+  // }
+  // return -1;
+
+  Bint x = a_mod_p, y = p;
+  int answer = 1;
+  // We recursively calculate the Jacobi Symbol (x/y)
+  while (x != 0) {
+    // std::cout << x << " " << y << " " << answer << std::endl;
+    if ((y & 7) == 1 || (y & 7) == 7) { // i.e. if (2/y) = 1
+      while (!(x & 1).to_bool()) {
+        x >>= 1;
+      }
+    } else {
+      while (!(x & 1).to_bool()) {
+        x >>= 1;
+        answer = -answer;
+      }
+    }
+
+    Bint temp = y;
+    y = x;
+    x = temp;
+
+    if ((x & 3) == 3 && (y & 3) == 3) { // Quadratic Reciprocity
+      answer = -answer;
+    }
+    x %= y;
   }
-  return -1;
+  return answer;
 }
 
 uint32_t pow2_ord(const Bint &t, const Bint &p) {
@@ -517,13 +546,48 @@ std::tuple<Bint, Bint, Bint> extended_euclidean(const Bint &a, const Bint &b) {
 }
 
 Bint modular_inv(const Bint &a, const Bint &m) {
-  std::tuple<Bint, Bint, Bint> t = extended_euclidean(a, m);
+  std::tuple<Bint, Bint, Bint> t = extended_euclidean(a % m, m);
+
   if (std::get<2>(t) != 1) {
     throw std::domain_error("a = " + a.to_string() +
                             " and m = " + m.to_string() + " are not coprime.");
   }
 
   return (std::get<0>(t) % m + m) % m;
+}
+
+Bint modular_inv_mod_prime(const Bint &a, const Bint &p) {
+  if (p.bit_length() <= 31) {
+    int p_int = p.to_uint32_t();
+
+    int u = Bint::div_m(a, p).second.to_uint32_t(), v = p_int;
+    int x1 = 1, x2 = 0;
+
+    while (u != 1) {
+      int q = v / u, r = v % u;
+      int x = x2 - q * x1;
+
+      v = u;
+      u = r;
+      x2 = x1;
+      x1 = x;
+    }
+    return (x1 + p_int) % p_int;
+  }
+
+  Bint u = Bint::div_m(a, p).second, v = p;
+  Bint x1 = 1, x2 = 0;
+
+  while (u != 1) {
+    std::pair<Bint, Bint> d = Bint::div(v, u);
+    Bint x = x2 - d.first * x1;
+
+    v = u;
+    u = d.second;
+    x2 = x1;
+    x1 = x;
+  }
+  return Bint::div_m(x1, p).second;
 }
 
 } // namespace Algorithm

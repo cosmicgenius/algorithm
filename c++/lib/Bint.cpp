@@ -323,8 +323,8 @@ void Bint::assign_mul(const Bint &a, const Bint &b, Bint &res) {
   }
 }
 
-void Bint::assign_div_m(const Bint &dividend, const BLOCK &divisor,
-                        Bint &quotient, BLOCK &remainder) {
+void Bint::assign_div_abs(const Bint &dividend, const BLOCK &divisor,
+                          Bint &quotient, BLOCK &remainder) {
   if (divisor == 0) {
     throw std::domain_error("Cannot divide by 0");
   }
@@ -351,24 +351,11 @@ void Bint::assign_div_m(const Bint &dividend, const BLOCK &divisor,
 
   quotient.resize();
   quotient.sgn = 1;
-
-  if (dividend.sgn == -1) {
-    quotient.sgn *= -1;
-    if (r == 0) {
-      return;
-    }
-
-    quotient += -1;
-    remainder = d - r;
-    return;
-  }
-
   remainder = r;
-  return;
 }
 
-void Bint::assign_div(const Bint &dividend, const Bint &divisor, Bint &quotient,
-                      Bint &remainder) {
+void Bint::assign_div_abs(const Bint &dividend, const Bint &divisor,
+                          Bint &quotient, Bint &remainder) {
   if (divisor.sgn == 0) {
     throw std::domain_error("Cannot divide by 0");
   }
@@ -380,7 +367,7 @@ void Bint::assign_div(const Bint &dividend, const Bint &divisor, Bint &quotient,
 
   if (divisor.data.size() == 1) {
     BLOCK r = 0;
-    assign_div_m(dividend.abs(), divisor.data[0], quotient, r);
+    assign_div_abs(dividend.abs(), divisor.data[0], quotient, r);
     remainder = r;
   } else {
     // Knuth's algorithm D
@@ -472,10 +459,69 @@ void Bint::assign_div(const Bint &dividend, const Bint &divisor, Bint &quotient,
 
     u >>= leading_zeroes;
   }
-
-  quotient.sgn = (dividend.sgn == divisor.sgn) ? 1 : -1;
-  remainder.sgn = remainder.sgn == 0 ? 0 : dividend.sgn;
 }
+
+void Bint::assign_div_m(const Bint &dividend, const Bint &divisor,
+                        Bint &quotient, Bint &remainder) {
+  if (divisor.sgn == 0) {
+    throw std::domain_error("Cannot divide by 0");
+  }
+  if (dividend.sgn == 0) {
+    return;
+  }
+
+  if (magnitude_comp(dividend, divisor)) {
+    if (dividend.sgn + divisor.sgn == 0) {
+      quotient = -1;
+      remainder = (divisor + dividend).abs();
+    } else {
+      remainder = dividend.abs();
+    }
+    return;
+  }
+
+  assign_div_abs(dividend, divisor, quotient, remainder);
+
+  if (dividend.sgn + divisor.sgn == 0) {
+    quotient += 1;
+    quotient.sgn = -1;
+    remainder = divisor.abs() - remainder;
+  }
+}
+
+void Bint::assign_div(const Bint &dividend, const Bint &divisor, Bint &quotient,
+                      Bint &remainder) {
+  if (divisor.sgn == 0) {
+    throw std::domain_error("Cannot divide by 0");
+  }
+  if (magnitude_comp(dividend, divisor)) {
+    remainder = dividend;
+    return;
+  }
+
+  assign_div_abs(dividend, divisor, quotient, remainder);
+  quotient.sgn = (dividend.sgn == divisor.sgn) ? 1 : -1;
+  remainder.sgn = (remainder.data.size() == 0) ? 0 : dividend.sgn;
+}
+
+// quotient.sgn = (dividend.sgn == divisor.sgn) ? 1 : -1;
+// remainder.sgn = 1;
+
+// {
+//   if (dividend.sgn == -1) {
+//     quotient.sgn = -1;
+//     if (r == 0) {
+//       return;
+//     }
+
+//     quotient += -1;
+//     remainder = d - r;
+//     return;
+//   }
+
+//   remainder = r;
+//   return;
+// }
 
 // Constructors
 
@@ -991,7 +1037,7 @@ std::string Bint::to_string() const {
 
   while (r.sgn != 0) {
     std::pair<Bint, BLOCK> p;
-    assign_div_m(r, DBLOCK_SIZE, p.first, p.second);
+    assign_div_abs(r, DBLOCK_SIZE, p.first, p.second);
     r = p.first;
 
     std::string dblock = std::to_string(p.second);
@@ -1055,6 +1101,11 @@ size_t Bint::bit_length() const {
 std::pair<Bint, Bint> Bint::div(const Bint &dividend, const Bint &divisor) {
   std::pair<Bint, Bint> p;
   assign_div(dividend, divisor, p.first, p.second);
+  return p;
+}
+std::pair<Bint, Bint> Bint::div_m(const Bint &dividend, const Bint &divisor) {
+  std::pair<Bint, Bint> p;
+  assign_div_m(dividend, divisor, p.first, p.second);
   return p;
 }
 
