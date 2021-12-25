@@ -489,6 +489,23 @@ void Bint::assign_div_m(const Bint &dividend, const Bint &divisor,
   }
 }
 
+void Bint::assign_div_m(const Bint &dividend, const BLOCK &divisor,
+                        Bint &quotient, BLOCK &remainder) {
+  if (divisor == 0) {
+    throw std::domain_error("Cannot divide by 0");
+  }
+  if (dividend == 0) {
+    return;
+  }
+  assign_div_abs(dividend, divisor, quotient, remainder);
+
+  if (dividend.sgn == -1) {
+    quotient += 1;
+    quotient.sgn = -1;
+    remainder = divisor - remainder;
+  }
+}
+
 void Bint::assign_div(const Bint &dividend, const Bint &divisor, Bint &quotient,
                       Bint &remainder) {
   if (divisor.sgn == 0) {
@@ -1105,6 +1122,11 @@ std::pair<Bint, Bint> Bint::div(const Bint &dividend, const Bint &divisor) {
 }
 std::pair<Bint, Bint> Bint::div_m(const Bint &dividend, const Bint &divisor) {
   std::pair<Bint, Bint> p;
+  assign_div_m(dividend, divisor, p.first, p.second);
+  return p;
+}
+std::pair<Bint, BLOCK> Bint::div_m(const Bint &dividend, const BLOCK &divisor) {
+  std::pair<Bint, BLOCK> p;
   assign_div_m(dividend, divisor, p.first, p.second);
   return p;
 }

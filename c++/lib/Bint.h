@@ -57,7 +57,8 @@ private:
   */
   static void assign_div_m(const Bint &dividend, const Bint &divisor,
                            Bint &quotient, Bint &remainder);
-
+  static void assign_div_m(const Bint &dividend, const BLOCK &divisor,
+                           Bint &quotient, BLOCK &remainder);
   /*
     Division, see the public div.
 
@@ -185,6 +186,8 @@ public:
     Hence, -7 / 3 = -3 and -7 % 3 = 2.
   */
   static std::pair<Bint, Bint> div_m(const Bint &dividend, const Bint &divisor);
+  static std::pair<Bint, BLOCK> div_m(const Bint &dividend,
+                                      const BLOCK &divisor);
 
   // Finds a ** b.
   //

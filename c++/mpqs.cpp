@@ -15,8 +15,9 @@ Bint mpqs(const Bint &n) {
   std::cout << "factoring " << n << std::endl;
 
   double approx_B;
-  uint32_t B, M, V;
+  uint32_t B, M, V, largest_partial_prime;
   std::set<uint32_t> prime_base;
+
   // std::map<uint32_t, uint32_t> prime_base_back;
 
   Bint sqrt_n = Bint::integral_rth_root(n, 2);
@@ -29,6 +30,7 @@ Bint mpqs(const Bint &n) {
                  (log(2 * approx_B) + log(log(2 * approx_B)) - 1));
 
   std::vector<uint32_t> possible_primes = Algorithm::primes_less_than(V);
+  largest_partial_prime = V * 100;
 
   // size_t sz = 0;
   for (uint32_t p : possible_primes) {
@@ -39,7 +41,7 @@ Bint mpqs(const Bint &n) {
   }
 
   B = prime_base.size();
-  M = floor(pow(B, 1.7) * 0.8);
+  M = floor(pow(B, 1.6) * 0.8);
 
   std::cout << "approx_B = " << approx_B << std::endl;
   std::cout << "B = " << B << std::endl;
@@ -53,8 +55,7 @@ Bint mpqs(const Bint &n) {
 
   uint32_t poly = 1;
 
-  std::vector<Bint> sieve_results, sieve_result_root;
-  uint32_t verified_sieve_results = 0;
+  std::vector<Bint> /*sieve_results,*/ sieve_result_root;
   int *vals = new int[2 * M + 1];
 
   std::map<uint32_t, Bint> nsqrt;
@@ -75,9 +76,14 @@ Bint mpqs(const Bint &n) {
     nsqrt[p] = rt;
   }
 
+  std::map<uint32_t, std::vector<std::pair<Bint, Bint>>> partial_cong;
+
   std::vector<std::vector<uint32_t>> gf2_smooth_matrix;
   std::vector<uint32_t> gf2_smooth_vector;
   gf2_smooth_vector.resize(B + 1);
+
+  int lazy_bit_length = sqrt_n_bit_length + Bint(M).bit_length() -
+                        Bint(largest_partial_prime).bit_length();
 
   Bint q_min =
       Bint::integral_rth_root(Bint::integral_rth_root(n << 1, 2) / M, 2);
@@ -87,6 +93,9 @@ Bint mpqs(const Bint &n) {
 
   clock_t q_find_time = 0, init_time = 0, calc_time = 0, assign_time = 0;
   clock_t last = clock();
+
+  size_t prev_results = 0;
+  int c = 0;
 
   do {
     last = clock();
@@ -123,7 +132,7 @@ Bint mpqs(const Bint &n) {
     //           << std::endl;
 
     for (uint32_t i = 0; i <= 2 * M; i++) {
-      vals[i] = -sqrt_n_bit_length;
+      vals[i] = -lazy_bit_length;
     }
 
     assign_time += clock() - last;
@@ -149,8 +158,8 @@ Bint mpqs(const Bint &n) {
       if (p == 2) {
         st2 = ((a & 1).to_bool() + (b & 1).to_bool()) % 2;
       } else {
-        st1 = Bint::div_m((-rt - b) * a_inv + M, p).second.to_uint32_t();
-        st2 = Bint::div_m((rt - b) * a_inv + M, p).second.to_uint32_t();
+        st1 = Bint::div_m((-rt - b) * a_inv + M, p).second;
+        st2 = Bint::div_m((rt - b) * a_inv + M, p).second;
         // std::cout << "rt: " << rt << std::endl;
         // std::cout << "(st1, st2): (" << st1 << ", " << st2 << ")" <<
         // std::endl;
@@ -176,16 +185,13 @@ Bint mpqs(const Bint &n) {
     // }
     // std::cout << "]" << std::endl;
 
-    size_t prev_results = sieve_results.size();
-    int lazy_bit_length = Bint(M).bit_length() - 1;
-
     // std::cout << "lazy_bit_length = " << lazy_bit_length << std::endl;
     for (uint32_t x = 0; x < 2 * M + 1; x++) {
       // if (vals[x] >= ((a2 + x) * x + t).bit_length()) {
       // Bint sqrt_n_offset = sieving_idx % 2 == 0 ? ((Bint)offset * M + x)
       //                                           : (-(Bint)offset * M + x);
       // if ((vals[x] >= (int)sqrt_n_offset.bit_length())) {
-      if (vals[x] >= lazy_bit_length) {
+      if (vals[x] >= 0) {
         Bint u = a * (Bint(x) - M) + b;
         Bint v = (u * u - n) / a;
         // std::cout << v << " " << x << std::endl;
@@ -203,123 +209,130 @@ Bint mpqs(const Bint &n) {
 
         // std::cout << "found " << x << " " << v << std::endl;
 
-        sieve_results.push_back(v);
-        sieve_result_root.push_back(u * q_inv % n);
+        // std::vector<Bint>::iterator res_it = sieve_results.begin() +
+        //                                      verified_sieve_results,
+        //                             res_rt_it = sieve_result_root.begin() +
+        //                                         verified_sieve_results;
+        // std::vector<std::vector<uint32_t>>::iterator matrix_it;
+        // we will use the first value as the "exponent" of -1
+
+        Bint w = v.abs();
+        int idx = 0;
+        // for (uint32_t p : prime_base) {
+        //   if (w % p == 0) {
+        //     c++;
+        //   }
+        // }
+
+        for (uint32_t p : prime_base) {
+          std::pair<Bint, uint32_t> res = Bint::div_m(w, p);
+          while (res.second == 0) {
+            w = res.first;
+            if (w == 1) {
+              goto done;
+            }
+            res = Bint::div_m(w, p);
+          }
+        }
+      done:
+
+        if (w == 1) {
+          // sieve_results.push_back(v);
+          sieve_result_root.push_back(u * q_inv % n);
+
+          gf2_smooth_vector[0] = (v < 0) ? 1 : 0;
+          w = v.abs();
+          for (uint32_t p : prime_base) {
+            gf2_smooth_vector[++idx] = 0;
+            while (w % p == 0) {
+              gf2_smooth_vector[idx]++;
+              w /= p;
+            }
+          }
+          gf2_smooth_matrix.push_back(gf2_smooth_vector);
+        } else if (w.bit_length() <= 32 &&
+                   w.to_uint32_t() < largest_partial_prime) {
+          // might not have to be a prime, but let's keep this for now
+          partial_cong[w.to_uint32_t()].emplace_back(u * q_inv % n, v);
+        }
       }
     }
 
-    uint32_t S = sieve_results.size();
+    uint32_t partials = 0;
+    for (const auto &partial_list : partial_cong) {
+      partials += (uint32_t)(partial_list.second.size()) / 2;
+    }
+    uint32_t S = sieve_result_root.size();
 
-    std::cout << "Sieved " << poly << " polynomials. " << S - prev_results
-              << " results found in the last polynomial. " << S << " / "
-              << (uint32_t)(B + ln_n) << " results in total"
-              << " (" << 1000.0 * S / ((uint32_t)(B + ln_n)) / 10.0 << "%). "
-              << "Around " << round(1000.0 * S / poly) / 1000.0
+    std::cout << "Polynomial " << poly << ": " << S + partials - prev_results
+              << " congruences found. " << S + partials << " / "
+              << (uint32_t)(B + ln_n) << " congruences in total"
+              << " (" << 1000.0 * (S + partials) / ((uint32_t)(B + ln_n)) / 10.0
+              << "%). "
+              << "Around " << round(1000.0 * (S + partials) / poly) / 1000.0
               << " per polynomial    " << '\r' << std::flush;
+    prev_results = S + partials;
 
-    while (S > B + ln_n) {
+    while (S + partials > B + ln_n) {
       std::cout << std::endl;
-      std::cout << "generating matrix from sieved results" << std::endl;
+      // std::cout << "generating matrix from sieved results" << std::endl;
       std::cout << "Sieve time estimates: q_find=" << q_find_time
                 << " init=" << init_time << " calc=" << calc_time
                 << " assign=" << assign_time << ", efficiency="
                 << (double)(q_find_time + init_time + calc_time) / assign_time
                 << std::endl;
 
-      std::vector<Bint>::iterator res_it = sieve_results.begin() +
-                                           verified_sieve_results,
-                                  res_rt_it = sieve_result_root.begin() +
-                                              verified_sieve_results;
-      std::vector<std::vector<uint32_t>>::iterator matrix_it;
+      std::cout << "Checking partial congruences..." << std::endl;
+      // Turn partials into real congruences
+      for (const auto &partial_list : partial_cong) {
+        if (partial_list.second.size() > 1) {
+          for (size_t i = 0; i < partial_list.second.size() - 1; i += 2) {
+            Bint u1 = partial_list.second[i].first,
+                 u2 = partial_list.second[i + 1].first;
+            Bint v1 = partial_list.second[i].second,
+                 v2 = partial_list.second[i + 1].second;
 
-      uint32_t new_res = 0, tot = 0;
+            gf2_smooth_vector[0] = (v1 < 0) ? 1 : 0;
 
-      while (res_it != sieve_results.end()) {
-        tot++;
-        // std::cout << "sieve results: [ ";
-        // for (Bint b : sieve_results) {
-        //   std::cout << b << " ";
-        // }
-        // std::cout << "]" << std::endl;
+            int idx = 0;
+            Bint w1 = v1, w2 = v2;
+            for (uint32_t p : prime_base) {
+              gf2_smooth_vector[++idx] = 0;
+              while (w1 % p == 0) {
+                gf2_smooth_vector[idx]++;
+                w1 /= p;
+              }
+              while (w2 % p == 0) {
+                gf2_smooth_vector[idx]++;
+                w2 /= p;
+              }
+            }
 
-        // we will use the first value as the "exponent" of -1
-        gf2_smooth_vector[0] = (*res_it < 0) ? 1 : 0;
+            const Bint &k = partial_list.first;
+            Bint k_inv = Algorithm::modular_inv(k, n);
+            Bint u = (u1 * u2 % n) * k_inv % n;
 
-        // std::cout << ">" << std::flush;
-        // std::map<Bint, uint32_t> pf =
-        //     prime_factors((*res_it).abs(), [](const Bint &b) {
-        //       return Algorithm::pollard_rho(b);
-        //     });
-        // bool actually_smooth = true;
-        // for (const std::pair<Bint, uint32_t> &prime_power : pf) {
-        //   if (prime_base.find(prime_power.first.to_uint32_t()) ==
-        //       prime_base.end()) {
-
-        //     // std::cout << *res_it << " fails; divisible by "
-        //     //           << prime_power.first.to_uint32_t() << std::endl;
-
-        //     // std::cout << ".";
-        //     actually_smooth = false;
-        //     break;
-        //   }
-        // }
-
-        // Trial division is actually faster
-        Bint v = (*res_it).abs();
-        int idx = 0;
-        for (uint32_t p : prime_base) {
-          gf2_smooth_vector[++idx] = 0;
-          while (v % p == 0) {
-            gf2_smooth_vector[idx]++;
-            v /= p;
+            sieve_result_root.push_back(u);
+            gf2_smooth_matrix.push_back(gf2_smooth_vector);
           }
         }
-
-        if (v != 1) {
-          res_it = sieve_results.erase(res_it);
-          res_rt_it = sieve_result_root.erase(res_rt_it);
-
-          // std::cout << "deleted one" << std::endl;
-
-          continue;
-        }
-
-        // std::cout << *res_it << " is verified" << std::endl;
-        std::cout << "verified smooth numbers: " << new_res + 1 << " / " << tot
-                  << " (" << 1000.0 * (new_res + 1) / tot / 10.0 << "%)" << '\r'
-                  << std::flush;
-
-        // int idx = 0;
-        // for (uint32_t p : prime_base) {
-        //   gf2_smooth_vector[++idx] = pf[p];
-        // }
-
-        gf2_smooth_matrix.push_back(gf2_smooth_vector);
-
-        res_it++;
-        res_rt_it++;
-        // std::cout << "./";
-        new_res++;
       }
-      S = sieve_results.size();
-      verified_sieve_results = S;
+
+      partials = 0;
+      S = sieve_result_root.size();
 
       if (S <= B + ln_n) {
         break;
       }
 
-      // std::vector<std::vector<bool>> gf2_smooth_matrix_bool =
-      // gf2_smooth_matrix;
-
-      std::cout << std::endl;
-      std::cout << "starting gaussian elimination after finding " << S
+      std::cout << "Starting gaussian elimination after finding " << S
                 << " > B + ln(n) = " << B + (int)ln_n << " smooth numbers"
                 << std::endl;
 
       std::vector<std::vector<int>> all_subsets =
           Algorithm::gf2_gaussian_elimination(gf2_smooth_matrix);
 
-      std::cout << "found " << all_subsets.size()
+      std::cout << "Found " << all_subsets.size()
                 << " linear dependencies, extracting g" << std::endl;
 
       bool marked_for_deletion[S];
@@ -361,28 +374,28 @@ Bint mpqs(const Bint &n) {
       }
 
       // It failed
-      res_it = sieve_results.begin();
-      res_rt_it = sieve_result_root.begin();
-      matrix_it = gf2_smooth_matrix.begin();
+      std::vector<Bint>::iterator /*res_it = sieve_results.begin(),*/
+          res_rt_it = sieve_result_root.begin();
+      std::vector<std::vector<uint32_t>>::iterator matrix_it =
+          gf2_smooth_matrix.begin();
       for (uint32_t idx = 0; idx < S; idx++) {
         if (marked_for_deletion[idx]) {
-          res_it = sieve_results.erase(res_it);
+          // res_it = sieve_results.erase(res_it);
           res_rt_it = sieve_result_root.erase(res_rt_it);
           matrix_it = gf2_smooth_matrix.erase(matrix_it);
         } else {
-          res_it++;
+          // res_it++;
           res_rt_it++;
           matrix_it++;
         }
       }
 
-      S = sieve_results.size();
-      verified_sieve_results = S;
+      S = sieve_result_root.size();
     }
     // delete[] vals;
     // return 71;
   } while (++poly);
-
+  std::cout << c;
   return 1;
 }
 
@@ -402,7 +415,7 @@ void print_prime_fact(Bint n) {
     return p.first.to_string() + " ^ " + std::to_string(p.second);
   };
 
-  std::cout << "the prime factorization of n is n = ";
+  std::cout << "The prime factorization of n is n = ";
 
   for (auto it = pf.begin(); it != pf.end(); it++) {
     if (it == pf.begin()) {
