@@ -24,7 +24,7 @@ Bint mpqs(const Bint &n) {
   int sqrt_n_bit_length = sqrt_n.bit_length();
 
   double ln_n = Bint::log_2(n) / 1.4426950408889634;
-  approx_B = exp(sqrt(ln_n * log(ln_n) / 8));
+  approx_B = exp(sqrt(ln_n * log(ln_n) / 9) + 0.1);
 
   V = (uint32_t)(2 * approx_B *
                  (log(2 * approx_B) + log(log(2 * approx_B)) - 1));
@@ -41,7 +41,7 @@ Bint mpqs(const Bint &n) {
   }
 
   B = prime_base.size();
-  M = floor(pow(B, 1.6) * 0.8);
+  M = floor(pow(B, 1.5) * 0.8);
 
   std::cout << "approx_B = " << approx_B << std::endl;
   std::cout << "B = " << B << std::endl;
@@ -91,14 +91,14 @@ Bint mpqs(const Bint &n) {
     q_min = 3;
   }
 
-  clock_t q_find_time = 0, init_time = 0, calc_time = 0, assign_time = 0;
-  clock_t last = clock();
+  // clock_t q_find_time = 0, init_time = 0, calc_time = 0, assign_time = 0;
+  // clock_t last = clock();
 
   size_t prev_results = 0;
   int c = 0;
 
   do {
-    last = clock();
+    // last = clock();
     bool done = false;
     // std::cout << q_min << std::endl;
 
@@ -109,8 +109,8 @@ Bint mpqs(const Bint &n) {
       // std::cout << q << std::endl;
       q++;
     }
-    q_find_time += clock() - last;
-    last = clock();
+    // q_find_time += clock() - last;
+    // last = clock();
 
     Bint q_inv = Algorithm::modular_inv(q, n);
 
@@ -125,8 +125,8 @@ Bint mpqs(const Bint &n) {
       prime_base.erase(find_q);
     }
 
-    init_time += clock() - last;
-    last = clock();
+    // init_time += clock() - last;
+    // last = clock();
 
     // std::cout << "sieving with new a, b: (" << a << " " << b << ")"
     //           << std::endl;
@@ -135,8 +135,8 @@ Bint mpqs(const Bint &n) {
       vals[i] = -lazy_bit_length;
     }
 
-    assign_time += clock() - last;
-    last = clock();
+    // assign_time += clock() - last;
+    // last = clock();
 
     for (uint32_t p : prime_base) {
       // std::cout << "p = " << p << " started" << std::endl;
@@ -152,8 +152,8 @@ Bint mpqs(const Bint &n) {
 
       uint32_t st1 = 0, st2 = 0;
 
-      init_time += clock() - last;
-      last = clock();
+      // init_time += clock() - last;
+      // last = clock();
 
       if (p == 2) {
         st2 = ((a & 1).to_bool() + (b & 1).to_bool()) % 2;
@@ -163,8 +163,8 @@ Bint mpqs(const Bint &n) {
         // std::cout << "rt: " << rt << std::endl;
         // std::cout << "(st1, st2): (" << st1 << ", " << st2 << ")" <<
         // std::endl;
-        calc_time += clock() - last;
-        last = clock();
+        // calc_time += clock() - last;
+        // last = clock();
 
         for (uint32_t x = st1; x <= 2 * M; x += p) {
           vals[x] += logp;
@@ -174,8 +174,8 @@ Bint mpqs(const Bint &n) {
         vals[x] += logp;
       }
 
-      assign_time += clock() - last;
-      last = clock();
+      // assign_time += clock() - last;
+      // last = clock();
     }
 
     // std::cout << "checking sieved results" << std::endl;
@@ -275,12 +275,13 @@ Bint mpqs(const Bint &n) {
 
     while (S + partials > B + ln_n) {
       std::cout << std::endl;
-      // std::cout << "generating matrix from sieved results" << std::endl;
-      std::cout << "Sieve time estimates: q_find=" << q_find_time
-                << " init=" << init_time << " calc=" << calc_time
-                << " assign=" << assign_time << ", efficiency="
-                << (double)(q_find_time + init_time + calc_time) / assign_time
-                << std::endl;
+      std::cout << "Generating matrix from sieved results" << std::endl;
+      // std::cout << "Sieve time estimates: q_find=" << q_find_time
+      //           << " init=" << init_time << " calc=" << calc_time
+      //           << " assign=" << assign_time << ", efficiency="
+      //           << (double)(q_find_time + init_time + calc_time) /
+      //           assign_time
+      //           << std::endl;
 
       std::cout << "Checking partial congruences..." << std::endl;
       // Turn partials into real congruences
