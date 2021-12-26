@@ -33,7 +33,7 @@ Bint mpqs(const Bint &n) {
   largest_partial_prime = V * 100;
 
   // size_t sz = 0;
-  for (uint32_t p : possible_primes) {
+  for (const uint32_t &p : possible_primes) {
     if (Algorithm::legendre_symbol(n, p) == 1) {
       prime_base.insert(p);
       // prime_base_back[p] = sz++;
@@ -62,7 +62,7 @@ Bint mpqs(const Bint &n) {
   std::map<uint32_t, uint32_t> nlog;
 
   std::cout << "initialization step" << std::endl;
-  for (uint32_t p : prime_base) {
+  for (const uint32_t &p : prime_base) {
     uint32_t q = p;
     int logp = Bint(p).bit_length();
     nlog[p] = logp;
@@ -119,11 +119,7 @@ Bint mpqs(const Bint &n) {
     Bint b = Algorithm::square_root_modulo_prime_power(n, q, 2);
 
     // Usually q >> any prime in the prime base, but just to be safe, remove it
-    auto find_q =
-        std::find(prime_base.begin(), prime_base.end(), q.to_uint32_t());
-    if (find_q != prime_base.end()) {
-      prime_base.erase(find_q);
-    }
+    prime_base.erase(q.to_uint32_t());
 
     // init_time += clock() - last;
     // last = clock();
@@ -224,7 +220,7 @@ Bint mpqs(const Bint &n) {
         //   }
         // }
 
-        for (uint32_t p : prime_base) {
+        for (const uint32_t &p : prime_base) {
           std::pair<Bint, uint32_t> res = Bint::div_m(w, p);
           while (res.second == 0) {
             w = res.first;
@@ -242,7 +238,7 @@ Bint mpqs(const Bint &n) {
 
           gf2_smooth_vector[0] = (v < 0) ? 1 : 0;
           w = v.abs();
-          for (uint32_t p : prime_base) {
+          for (const uint32_t &p : prime_base) {
             gf2_smooth_vector[++idx] = 0;
             while (w % p == 0) {
               gf2_smooth_vector[idx]++;
@@ -348,7 +344,7 @@ Bint mpqs(const Bint &n) {
         memset(prime_powers, 0, sizeof(prime_powers));
 
         // std::cout << "subset = [ ";
-        for (int s : subset) {
+        for (const int &s : subset) {
           // std::cout << s << " ";
           square1_rt *= sieve_result_root[s];
           for (uint32_t i = 0; i < B; i++) {

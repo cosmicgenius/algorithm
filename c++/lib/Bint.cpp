@@ -237,6 +237,7 @@ void Bint::assign_mul(const Bint &a, const Bint &b, Bint &res) {
     }
 
     res.resize();
+    res.sgn = 1;
 
     return;
   } else {
@@ -499,7 +500,7 @@ void Bint::assign_div_m(const Bint &dividend, const BLOCK &divisor,
   }
   assign_div_abs(dividend, divisor, quotient, remainder);
 
-  if (dividend.sgn == -1) {
+  if (dividend.sgn == -1 && remainder != 0) {
     quotient += 1;
     quotient.sgn = -1;
     remainder = divisor - remainder;
@@ -1043,6 +1044,7 @@ bool Bint::to_bool() const { return sgn != 0; }
 
 std::string Bint::to_string() const {
   if (this->sgn == 0) {
+    std::cout << "found 0 " << std::endl;
     return "0";
   }
 
