@@ -470,9 +470,6 @@ Bint siqs(const Bint &n) {
           return g;
         }
 
-        delete[] vals;
-        return 1;
-
         marked_for_deletion[subset[0]] = true;
       }
 
