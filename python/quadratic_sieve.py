@@ -140,6 +140,7 @@ def proper_factor(n):
                 for p in prime_fac:
                     if p not in prime_base_back:
                         not_actually_smooth = True
+                        print('>.', end='')
                         break
 
                 if not_actually_smooth:

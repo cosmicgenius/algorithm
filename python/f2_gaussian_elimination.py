@@ -47,4 +47,4 @@ if __name__ == '__main__':
          [0, 4, 1, 1],
          [2, 0, 1, 0],
          [0, 2, 0, 1]]
-    print(generate_subset(m))
+    print(generate_subsets(m))
